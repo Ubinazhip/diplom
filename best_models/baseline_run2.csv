@@ -1,0 +1,2 @@
+model_name,fold,dice_bce_focal,train_metric,val_metric,test_metric,train_loss,val_loss,test_loss,stopped_epoch,mse_vector_loss,transform,weight_decay,stop_patience,scheduler_patience,scheduler_factor,lr,loss_weight,dataset
+unetpp_resnet34,0,"1, 0, 0",0.5636882185935974,0.4520101845264435,0.4826010763645172,0.4363114543863245,0.5479897883008508,0.5173989096224703,149,130.12242126464844,./transforms/train_transform512.yml,5e-06,20,10,0.1,0.0003,1,cbis

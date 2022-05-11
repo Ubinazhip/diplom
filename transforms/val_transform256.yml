@@ -1,0 +1,25 @@
+2__version__: 1.0.3
+transform:
+  __class_fullname__: Compose
+  additional_targets:
+    image1: image
+    mask1: mask
+  bbox_params: null
+  keypoint_params: null
+  p: 1.0
+  transforms:
+  - __class_fullname__: Resize
+    always_apply: true
+    height: 270
+    interpolation: 1
+    p: 1
+    width: 270
+  - __class_fullname__: CenterCrop
+    always_apply: true
+    height: 256
+    p: 1.0
+    width: 256
+  - __class_fullname__: ToTensorV2
+    always_apply: true
+    p: 1.0
+    transpose_mask: false
