@@ -1,0 +1,103 @@
+__version__: 1.0.3
+transform:
+  __class_fullname__: Compose
+  additional_targets:
+    image1: image
+    mask1: mask
+  bbox_params: null
+  keypoint_params: null
+  p: 1.0
+  transforms:
+  - __class_fullname__: Resize
+    always_apply: false
+    height: 530
+    interpolation: 1
+    p: 1
+    width: 530
+  - __class_fullname__: RandomCrop
+    always_apply: false
+    height: 512
+    p: 1.0
+    width: 512
+  - __class_fullname__: OneOf
+    p: 0.5
+    transforms:
+    - __class_fullname__: CLAHE
+      always_apply: false
+      clip_limit:
+      - 1
+      - 4.0
+      p: 0.4
+      tile_grid_size:
+      - 8
+      - 8
+    - __class_fullname__: RandomGamma
+      always_apply: false
+      eps: null
+      gamma_limit:
+      - 80
+      - 120
+      p: 0.4
+  - __class_fullname__: ShiftScaleRotate
+    always_apply: false
+    border_mode: 4
+    interpolation: 1
+    mask_value: null
+    p: 0.5
+    rotate_limit:
+    - -15
+    - 15
+    scale_limit:
+    - -0.19999999999999996
+    - 0.19999999999999996
+    shift_limit_x:
+    - -0.1
+    - 0.1
+    shift_limit_y:
+    - -0.1
+    - 0.1
+    value: null
+  - __class_fullname__: OneOf
+    p: 0.5
+    transforms:
+    - __class_fullname__: Blur
+      always_apply: false
+      blur_limit:
+      - 3
+      - 7
+      p: 1.0
+    - __class_fullname__: MotionBlur
+      always_apply: false
+      blur_limit:
+      - 3
+      - 7
+      p: 0.3
+    - __class_fullname__: GaussNoise
+      always_apply: false
+      mean: 0
+      p: 0.5
+      per_channel: true
+      var_limit:
+      - 10.0
+      - 50.0
+    - __class_fullname__: ImageCompression
+      always_apply: false
+      compression_type: 0
+      p: 0.3
+      quality_lower: 75
+      quality_upper: 100
+  - __class_fullname__: CoarseDropout
+    always_apply: false
+    fill_value: 250
+    mask_fill_value: null
+    max_height: 16
+    max_holes: 16
+    max_width: 16
+    min_height: 8
+    min_holes: 8
+    min_width: 8
+    p: 0.1
+  - __class_fullname__: ToTensorV2
+    always_apply: true
+    p: 1.0
+    transpose_mask: false

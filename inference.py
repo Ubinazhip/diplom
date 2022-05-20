@@ -23,34 +23,33 @@ def parser():
     return args
 
 
-def inference(model, loader, criterion, metric, mode='train'):
+def inference(model, loader, criterion, metric, mode='train', vit=False):
     model.eval()
     tqdm_loader = tqdm(loader)
     running_loss = 0
     running_dice = 0
-    running_mlo = 0
-    running_cc = 0
     for idx_batch, batch in enumerate(tqdm_loader):
         img_mlo, img_cc, label_mlo, label_cc = batch
         img_mlo, img_cc, label_mlo, label_cc = img_mlo.cuda(), img_cc.cuda(), label_mlo.cuda(), label_cc.cuda()
         with torch.no_grad():
-            pred_mlo, pred_cc = model(x_mlo=img_mlo, x_cc=img_cc)
-            loss = 0.5 * criterion(pred_mlo, label_mlo) + 0.5 * criterion(pred_cc, label_cc)
+            if vit:
+                pred_mlo = model(img_mlo)
+                loss = criterion(pred_mlo, label_mlo)
+                dice = metric(torch.sigmoid(pred_mlo), label_mlo, per_image=True)
+            else:
+                pred_mlo, pred_cc = model(x_mlo=img_mlo, x_cc=img_cc)
+                loss = 0.5 * criterion(pred_mlo, label_mlo) + 0.5 * criterion(pred_cc, label_cc)
+                mlo_dice = metric(torch.sigmoid(pred_mlo), label_mlo, per_image=True)
+                cc_dice = metric(torch.sigmoid(pred_cc), label_cc, per_image=True)
+                dice = 0.5 * mlo_dice + 0.5 * cc_dice
 
-            mlo_dice = metric(torch.sigmoid(pred_mlo), label_mlo, per_image=True)
-            cc_dice = metric(torch.sigmoid(pred_cc), label_cc, per_image=True)
-            dice = 0.5 * mlo_dice + 0.5 * cc_dice
             running_loss += loss.item() * img_mlo.size(0)
-            running_dice += dice * img_mlo.size(0)
-            running_mlo += mlo_dice * img_mlo.size(0)
-            running_cc += cc_dice * img_mlo.size(0)
+            running_dice += dice.item() * img_mlo.size(0)
 
     epoch_loss = running_loss / len(loader.dataset)
     epoch_dice = running_dice / len(loader.dataset)
-    epoch_mlo = running_mlo / len(loader.dataset)
-    epoch_cc = running_cc / len(loader.dataset)
-    print(f'{mode}: epoch loss = {epoch_loss:.4f}, dice mlo = {epoch_mlo:.4f}, dice cc = {epoch_cc:.4f}, dice = {epoch_dice:.4f}')
-    return epoch_dice.item(), epoch_loss
+    print(f'{mode}: epoch loss = {epoch_loss:.4f}, dice = {epoch_dice:.4f}')
+    return epoch_dice, epoch_loss
 
 
 if __name__ == '__main__':

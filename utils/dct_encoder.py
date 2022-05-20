@@ -3,6 +3,7 @@ import torch
 import torch_dct
 import scipy
 
+
 #https://github.com/aliyun/DCT-Mask/tree/master/projects/DCT_Mask
 class DctMaskEncoding(object):
     """
@@ -34,6 +35,7 @@ class DctMaskEncoding(object):
         xs, ys = dct_vector_coords[:, 0], dct_vector_coords[:, 1]
         #print(dct_all.shape)
         dct_vectors = dct_all[:, xs, ys]  # reshape as vector
+        dct_vectors.requires_grad = True
         return dct_vectors  # [N, D]
 
     def decode(self, dct_vectors, dim=None):

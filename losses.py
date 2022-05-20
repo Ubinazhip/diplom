@@ -329,24 +329,3 @@ class CustomLoss(torch.nn.Module):
         loss2 = 0.5 * self.criterion1(pred_mlo, true_mlo) + 0.5 * self.criterion1(pred_cc, true_cc)
         loss_overall = self.loss_weight * loss + (1 - self.loss_weight) * loss2
         return loss_overall
-
-
-class JSD(nn.Module):
-    '''
-    https://discuss.pytorch.org/t/jensen-shannon-divergence/2626/5
-    '''
-
-    def __init__(self):
-        super(JSD, self).__init__()
-
-    def forward(self, net_1_logits, net_2_logits):
-        net_1_probs = F.softmax(net_1_logits, dim=1)
-        net_2_probs = F.softmax(net_2_logits, dim=1)
-
-        total_m = 0.5 * (net_1_probs + net_2_probs)
-        loss = 0.0
-        loss += F.kl_div(F.log_softmax(net_1_logits, dim=1), total_m, reduction="batchmean")
-        loss += F.kl_div(F.log_softmax(net_2_logits, dim=1), total_m, reduction="batchmean")
-
-        return (0.5 * loss)
-

@@ -12,7 +12,7 @@ import torch
 
 class CbisDataset(Dataset):
     def __init__(self, fold=0, root='/home/ibm_prod/projects/datasets/cbis_ddsm/Mass_png', mode='Train',
-                 transform=None):
+                 transform=None, vit=False):
 
         if mode == 'Train' or mode == 'val':
             self.df = pd.read_csv(f'./folds/cbis/{mode.lower()}{fold}.csv')
@@ -30,6 +30,7 @@ class CbisDataset(Dataset):
         else:
             self.transform = transform
         self.mode = mode
+        self.vit = vit
 
     def __len__(self):
         return len(self.df)
@@ -63,12 +64,17 @@ class CbisDataset(Dataset):
 
         mask_cc = (mask_cc).to(torch.float32)
         mask_cc = mask_cc / 255
+        if self.vit:
+            img = torch.cat([img_mlo, img_cc], dim=1)
+            mask = torch.cat([mask_mlo, mask_cc], dim=0)
+            return img, img, mask[None,], mask[None,]
 
-        return img_mlo, img_cc, mask_mlo[None,], mask_cc[None,]
+        else:
+            return img_mlo, img_cc, mask_mlo[None,], mask_cc[None,]
 
 
 class InBreast(Dataset):
-    def __init__(self, fold=0, root='/home/ibm_prod/projects/datasets/INBreast/', mode='train', transform=None):
+    def __init__(self, fold=0, root='/home/ibm_prod/projects/datasets/INBreast/', mode='train', transform=None, vit=False):
 
         self.df = pd.read_csv(f'/home/ibm_prod/projects/diplom/folds/inbreast/{mode}{fold}.csv')
         self.root = os.path.join(root, 'AllPNGs')
@@ -81,6 +87,7 @@ class InBreast(Dataset):
         else:
             self.transform = transform
         self.mode = mode
+        self.vit = vit
 
     def __len__(self):
         return len(self.df)
@@ -125,23 +132,29 @@ class InBreast(Dataset):
         mask2 = (mask2).to(torch.float32)
         mask2 = mask2 / 255
 
-        return img1, img2, mask1[None,], mask2[None,]
+        if self.vit:
+            img = torch.cat([img1, img2], dim=1)
+            mask = torch.cat([mask1, mask2], dim=0)
+            return img, img, mask[None,], mask[None,]
+
+        else:
+            return img1, img2, mask1[None,], mask2[None,]
 
 
-def data_loader(fold=0, batch_size=8, train_transform=None, val_transform=None, dataset='cbis'):
+def data_loader(fold=0, batch_size=8, train_transform=None, val_transform=None, dataset='cbis', vit=False):
 
     if train_transform is not None:
         train_transform = A.load(train_transform, data_format='yaml')
     if val_transform is not None:
         val_transform = A.load(val_transform, data_format='yaml')
     if dataset == 'cbis':
-        data_train = CbisDataset(fold=fold, transform=train_transform, mode='Train')
-        data_val = CbisDataset(fold=fold, transform=val_transform, mode='val')
-        data_test = CbisDataset(fold=fold, transform=val_transform, mode='Test')
+        data_train = CbisDataset(fold=fold, transform=train_transform, mode='Train', vit=vit)
+        data_val = CbisDataset(fold=fold, transform=val_transform, mode='val', vit=vit)
+        data_test = CbisDataset(fold=fold, transform=val_transform, mode='Test', vit=vit)
     elif dataset == 'inbreast':
-        data_train = InBreast(fold=fold, mode='train', transform=train_transform)
-        data_val = InBreast(fold=fold, mode='val', transform=val_transform)
-        data_test = InBreast(fold=fold, mode='val', transform=val_transform)
+        data_train = InBreast(fold=fold, mode='train', transform=train_transform, vit=vit)
+        data_val = InBreast(fold=fold, mode='val', transform=val_transform, vit=vit)
+        data_test = InBreast(fold=fold, mode='val', transform=val_transform, vit=vit)
     else:
         raise NotImplementedError('No such dataset')
 

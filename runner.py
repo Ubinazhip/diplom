@@ -31,11 +31,13 @@ def parser():
     parser.add_argument('--scheduler_factor', type=float, default=0.1, help='reduce factor reduce')
     parser.add_argument('--scheduler_patience', type=int, default=5, help='patience for scheduler')
     parser.add_argument('--loss_weight', type=float, default=1, help='weighted average of losses')
+    parser.add_argument('--loss_type', type=str, default='baseline', help='type of the loss')
     parser.add_argument('--save_res_csv', type=str, default=None, help='csv file to save the results')
     parser.add_argument('--dice', type=int, default=1, help='weight for dice loss in ComboLoss')
     parser.add_argument('--bce', type=int, default=0, help='weight for bce loss in ComboLoss')
     parser.add_argument('--focal', type=int, default=0, help='weight for focal loss in ComboLoss')
     parser.add_argument('--dataset', type=str, default='cbis', help='dataset: cbis or inbreast')
+    parser.add_argument('--vit', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -52,14 +54,19 @@ def save_res_csv(res_dict, file):
 
 if __name__ == '__main__':
     args = parser()
-
-    model = model.get_model(model_name=args.model)
+    model_splits = args.model.split('_')
+    model_name = model_splits[0]
+    if len(model_splits) >= 2:
+        encoder = args.model.split('_')[1]
+    else:
+        encoder = None
+    model = model.get_model(model_name=model_name, encoder=encoder)
     model = model.cuda()
     model = torch.nn.DataParallel(model)
 
     dataloaders = dataset.data_loader(fold=args.fold, batch_size=args.batch_size,
-                                      train_transform=args.transform,
-                                      val_transform=args.transform_val, dataset=args.dataset)
+                                      train_transform=args.transform, val_transform=args.transform_val,
+                                      dataset=args.dataset, vit=args.vit)
 
     criterion = losses.ComboLoss(dict(dice=args.dice, bce=args.bce, focal=args.focal))
     criterion2 = losses.CustomLoss(loss_weight=args.loss_weight)  # torch.nn.MSELoss()
@@ -67,12 +74,12 @@ if __name__ == '__main__':
     valid_metric = losses.dice_metric
     pytorch_total_params = sum(p.numel() for p in model.parameters())
 
-    print('-'*100)
-    print(f'The model has {pytorch_total_params} parameters, fold = {args.fold}, lr = {args.lr},' 
-           f'epochs = {args.epochs}, dataset = {args.dataset}')
+    print('-' * 100)
+    print(f'The model has {pytorch_total_params} parameters, fold = {args.fold}, lr = {args.lr},'
+          f'epochs = {args.epochs}, dataset = {args.dataset}, vision transformers: {args.vit}')
     print(
         f'Scheduler: patience = {args.scheduler_patience}, reduce factor: {args.scheduler_factor}, loss_weight = {args.loss_weight}')
-    print(f'ComboLoss: dice = {args.dice}, bce = {args.bce}, focal = {args.focal}')
+    print(f'ComboLoss: dice = {args.dice}, bce = {args.bce}, focal = {args.focal}; loss_type = {args.loss_type}')
     print('-' * 100)
     print('\n')
 
@@ -81,32 +88,36 @@ if __name__ == '__main__':
                    stopped_epoch=0, mse_vector_loss=0.0, transform=args.transform, weight_decay=args.weight_decay,
                    stop_patience=args.stop_patience, scheduler_patience=args.scheduler_patience,
                    scheduler_factor=args.scheduler_factor, lr=args.lr, loss_weight=args.loss_weight,
-                   dataset=args.dataset, model_state_dict=None)
+                   loss_type=args.loss_type, dataset=args.dataset, model_state_dict=None)
 
     early_stopping = EarlyStopping(patience=args.stop_patience, verbose=True)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,
-                                weight_decay=args.weight_decay)
+                                 weight_decay=args.weight_decay)
 
     model = train.train_model(model=model, dataloaders=dataloaders, criterions=criterions, optimizer=optimizer,
-                              num_epochs=args.epochs, hparams=hparams, loss_type='baseline')
+                              num_epochs=args.epochs, hparams=hparams, loss_type=args.loss_type, vit=args.vit)
 
     dataloaders = dataset.data_loader(fold=args.fold, batch_size=1,
-                                      train_transform=args.transform_val,
-                                      val_transform=args.transform_val, dataset=args.dataset)
+                                      train_transform=args.transform_val, val_transform=args.transform_val,
+                                      dataset=args.dataset, vit=args.vit)
 
     model.eval()
     test_metric, test_loss = inference.inference(model, dataloaders['test'], criterion=criterion,
-                                                 metric=valid_metric, mode='test')
+                                                 metric=valid_metric, mode='test', vit=args.vit)
     val_metric, val_loss = inference.inference(model, dataloaders['val'], criterion=criterion,
-                                               metric=valid_metric, mode='validation')
+                                               metric=valid_metric, mode='validation', vit=args.vit)
     train_metric, train_loss = inference.inference(model, dataloaders['train'], criterion=criterion,
-                                                   metric=valid_metric, mode='train')
+                                                   metric=valid_metric, mode='train', vit=args.vit)
 
     hparams['val_metric'], hparams['val_loss'] = val_metric, val_loss
     hparams['test_metric'], hparams['test_loss'] = test_metric, test_loss
     hparams['train_metric'], hparams['train_loss'] = train_metric, train_loss
+    if args.dataset == 'inbreast':
+        save_model = test_metric > 0.7 and val_metric > 0.7 and train_metric > 0.7
+    else:
+        save_model = test_metric > 0.55 and val_metric > 0.55 and train_metric > 0.55
 
-    if test_metric > 0.45 and val_metric > 0.45 and train_metric > 0.5:
+    if save_model:
         name_file = f'./best_models/{args.model}_{args.dataset}_fold{args.fold}_dice_train{train_metric:.3f}_val{val_metric:.3f}_test{test_metric:.3f}_stop{args.stop_patience}{args.scheduler_patience}.pth'
         torch.save(hparams, name_file)
         print(f'The best model is saved as {name_file}')
