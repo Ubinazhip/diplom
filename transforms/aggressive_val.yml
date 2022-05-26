@@ -10,10 +10,10 @@ transform:
   transforms:
   - __class_fullname__: Resize
     always_apply: false
-    height: 530
+    height: 520
     interpolation: 1
     p: 1
-    width: 530
+    width: 520
   - __class_fullname__: CenterCrop
     always_apply: false
     height: 512

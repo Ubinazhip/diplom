@@ -79,7 +79,8 @@ if __name__ == '__main__':
           f'epochs = {args.epochs}, dataset = {args.dataset}, vision transformers: {args.vit}')
     print(
         f'Scheduler: patience = {args.scheduler_patience}, reduce factor: {args.scheduler_factor}, loss_weight = {args.loss_weight}')
-    print(f'ComboLoss: dice = {args.dice}, bce = {args.bce}, focal = {args.focal}; loss_type = {args.loss_type}')
+    print(f"ComboLoss: dice = {args.dice}, bce = {args.bce}, focal = {args.focal}; loss_type = {args.loss_type}, "
+           f"lr = {args.lr}")
     print('-' * 100)
     print('\n')
 

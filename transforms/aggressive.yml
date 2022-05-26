@@ -10,10 +10,10 @@ transform:
   transforms:
   - __class_fullname__: Resize
     always_apply: false
-    height: 530
+    height: 520
     interpolation: 1
     p: 1
-    width: 530
+    width: 520
   - __class_fullname__: RandomCrop
     always_apply: false
     height: 512
@@ -25,9 +25,9 @@ transform:
     - __class_fullname__: CLAHE
       always_apply: false
       clip_limit:
-      - 1
+      - 2
       - 4.0
-      p: 0.4
+      p: 0.5
       tile_grid_size:
       - 8
       - 8
@@ -35,7 +35,7 @@ transform:
       always_apply: false
       eps: null
       gamma_limit:
-      - 80
+      - 100
       - 120
       p: 0.4
   - __class_fullname__: ShiftScaleRotate
@@ -58,18 +58,18 @@ transform:
     - 0.1
     value: null
   - __class_fullname__: OneOf
-    p: 0.5
+    p: 0.3
     transforms:
     - __class_fullname__: Blur
       always_apply: false
       blur_limit:
       - 3
       - 7
-      p: 1.0
+      p: 0.3
     - __class_fullname__: MotionBlur
       always_apply: false
       blur_limit:
-      - 3
+      - 5
       - 7
       p: 0.3
     - __class_fullname__: GaussNoise
@@ -78,13 +78,13 @@ transform:
       p: 0.5
       per_channel: true
       var_limit:
-      - 10.0
-      - 50.0
+      - 30.0
+      - 70.0
     - __class_fullname__: ImageCompression
       always_apply: false
       compression_type: 0
       p: 0.3
-      quality_lower: 75
+      quality_lower: 40
       quality_upper: 100
   - __class_fullname__: CoarseDropout
     always_apply: false
