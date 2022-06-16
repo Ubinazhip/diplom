@@ -45,7 +45,6 @@ def train_model(model, dataloaders, criterions, optimizer, num_epochs, hparams, 
     best_dice = 0.0
 
     dice_metric = losses.dice_metric
-    #    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5, factor=0.3)
     early_stopping = EarlyStopping(patience=hparams['stop_patience'], verbose=True)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
                                                            factor=hparams['scheduler_factor'],
@@ -57,7 +56,6 @@ def train_model(model, dataloaders, criterions, optimizer, num_epochs, hparams, 
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
 
-        # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
             if phase == 'train':
                 model.train()  # Set model to training mode
@@ -66,10 +64,10 @@ def train_model(model, dataloaders, criterions, optimizer, num_epochs, hparams, 
 
             running_loss = 0.0
             running_dice = 0.0
-            running_vector_loss = 0.0 #mse on y axis
-            running_vector_loss_x = 0.0 #mse_on x axis
-            running_vector_jensen_x = 0.0 #jensen shannon on x axis
-            # Iterate over data.
+            running_vector_loss = 0.0
+            running_vector_loss_y = 0.0
+            running_vector_jensen_y = 0.0
+
             for img_mlo, img_cc, mask_mlo, mask_cc in tqdm(dataloaders[phase]):
                 if vit:
                     img_mlo, mask_mlo = img_mlo.cuda(), mask_mlo.cuda()
@@ -80,17 +78,15 @@ def train_model(model, dataloaders, criterions, optimizer, num_epochs, hparams, 
                 optimizer.zero_grad()
                 mask_encoder = DctMaskEncoding(vec_dim=5000, mask_size=mask_cc.shape[-1])
                 with torch.set_grad_enabled(phase == 'train'):
-                    if vit:
+                    if vit:#transformer
                         pred_mlo = model(img_mlo)
                         loss = criterions[0](pred_mlo, mask_mlo)
-                        #dice = dice_metric(torch.sigmoid(pred_mlo), mask_mlo, per_image=True)
                         splits_img, splits_mask = torch.split(pred_mlo, 512, dim=2), torch.split(mask_mlo, 512, dim=2)
                         pred_mlo, pred_cc = splits_img[0], splits_img[1]
                         mask_mlo, mask_cc = splits_mask[0], splits_mask[1]
                         dice = 0.5 * dice_metric(torch.sigmoid(pred_mlo), mask_mlo, per_image=True) + 0.5 * dice_metric(
                             torch.sigmoid(pred_cc), mask_cc, per_image=True)
-
-                    else:
+                    else:#updated loss
                         pred_mlo, pred_cc = model(img_mlo, img_cc)
                         loss = 0.5 * criterions[0](pred_mlo, mask_mlo) + 0.5 * (
                             criterions[0](pred_cc, mask_cc))
@@ -101,10 +97,10 @@ def train_model(model, dataloaders, criterions, optimizer, num_epochs, hparams, 
                     vec_cc = torch.sum(torch.sigmoid(pred_cc), dim=(1, 2))
                     vector_loss = mse_loss(vec_cc, vec_mlo)
 
-                    vec_mlo_x = torch.sum(torch.sigmoid(pred_mlo), dim=(1, 3))
-                    vec_cc_x = torch.sum(torch.sigmoid(pred_cc), dim=(1, 3))
-                    vector_loss_x = mse_loss(vec_cc_x, vec_mlo_x)
-                    vector_jensen_x = jensen_shannon(vec_cc_x, vec_mlo_x)
+                    vec_mlo_y = torch.sum(torch.sigmoid(pred_mlo), dim=(1, 3))
+                    vec_cc_y = torch.sum(torch.sigmoid(pred_cc), dim=(1, 3))
+                    vector_loss_y = mse_loss(vec_cc_y, vec_mlo_y)
+                    vector_jensen_y = jensen_shannon(vec_cc_y, vec_mlo_y)
 
                     if loss_type == 'axis_sum':
                         loss = hparams['loss_weight'] * loss + (1 - hparams['loss_weight']) * vector_loss
@@ -123,14 +119,14 @@ def train_model(model, dataloaders, criterions, optimizer, num_epochs, hparams, 
                 running_loss += loss.item() * img_mlo.size(0)
                 running_dice += dice.item() * img_mlo.size(0)
                 running_vector_loss += vector_loss.item() * img_mlo.size(0)
-                running_vector_loss_x += vector_loss_x.item() * img_mlo.size(0)
-                running_vector_jensen_x += vector_jensen_x.item() * img_mlo.size(0)
+                running_vector_loss_y += vector_loss_y.item() * img_mlo.size(0)
+                running_vector_jensen_y += vector_jensen_y.item() * img_mlo.size(0)
 
             epoch_loss = running_loss / len(dataloaders[phase].dataset)
             epoch_dice = running_dice / len(dataloaders[phase].dataset)
             epoch_vector_loss = running_vector_loss / len(dataloaders[phase].dataset)
-            epoch_vector_loss_x = running_vector_loss_x / len(dataloaders[phase].dataset)
-            epoch_vector_jensen_x = running_vector_jensen_x / len(dataloaders[phase].dataset)
+            epoch_vector_loss_y = running_vector_loss_y / len(dataloaders[phase].dataset)
+            epoch_vector_jensen_y = running_vector_jensen_y / len(dataloaders[phase].dataset)
 
             if phase == "val":
                 scheduler.step(epoch_loss)
@@ -146,8 +142,8 @@ def train_model(model, dataloaders, criterions, optimizer, num_epochs, hparams, 
                 best_acc_model_wts = copy.deepcopy(get_state_dict(model))
                 hparams['model_state_dict'] = best_acc_model_wts
                 hparams['mse_vector_loss'] = epoch_vector_loss
-                hparams['mse_vector_loss_x'] = epoch_vector_loss_x
-                hparams['jensen_vector_x'] = epoch_vector_jensen_x
+                hparams['mse_vector_loss_y'] = epoch_vector_loss_y
+                hparams['jensen_vector_y'] = epoch_vector_jensen_y
 
             if phase == 'val':
                 val_dice_history.append(epoch_dice)

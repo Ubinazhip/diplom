@@ -30,14 +30,14 @@ def parser():
     parser.add_argument('--stop_patience', type=int, default=15, help='patience for early stopping')
     parser.add_argument('--scheduler_factor', type=float, default=0.1, help='reduce factor reduce')
     parser.add_argument('--scheduler_patience', type=int, default=5, help='patience for scheduler')
-    parser.add_argument('--loss_weight', type=float, default=1, help='weighted average of losses')
+    parser.add_argument('--loss_weight', type=float, default=1, help='weight of main loss')
     parser.add_argument('--loss_type', type=str, default='baseline', help='type of the loss')
     parser.add_argument('--save_res_csv', type=str, default=None, help='csv file to save the results')
     parser.add_argument('--dice', type=int, default=1, help='weight for dice loss in ComboLoss')
     parser.add_argument('--bce', type=int, default=0, help='weight for bce loss in ComboLoss')
     parser.add_argument('--focal', type=int, default=0, help='weight for focal loss in ComboLoss')
     parser.add_argument('--dataset', type=str, default='cbis', help='dataset: cbis or inbreast')
-    parser.add_argument('--vit', action='store_true')
+    parser.add_argument('--vit', action='store_true', help='whether to use transformer or not')
     args = parser.parse_args()
     return args
 
@@ -69,8 +69,7 @@ if __name__ == '__main__':
                                       dataset=args.dataset, vit=args.vit)
 
     criterion = losses.ComboLoss(dict(dice=args.dice, bce=args.bce, focal=args.focal))
-    criterion2 = losses.CustomLoss(loss_weight=args.loss_weight)  # torch.nn.MSELoss()
-    criterions = [criterion, criterion2]
+    criterions = [criterion]
     valid_metric = losses.dice_metric
     pytorch_total_params = sum(p.numel() for p in model.parameters())
 
@@ -119,7 +118,7 @@ if __name__ == '__main__':
         save_model = test_metric > 0.55 and val_metric > 0.55 and train_metric > 0.55
 
     if save_model:
-        name_file = f'./best_models/{args.model}_{args.dataset}_fold{args.fold}_dice_train{train_metric:.3f}_val{val_metric:.3f}_test{test_metric:.3f}_stop{args.stop_patience}{args.scheduler_patience}.pth'
+        name_file = f'./best_models/axis_sum_models/{args.model}_{args.dataset}_fold{args.fold}_dice_train{train_metric:.3f}_val{val_metric:.3f}_test{test_metric:.3f}_stop{args.stop_patience}{args.scheduler_patience}.pth'
         torch.save(hparams, name_file)
         print(f'The best model is saved as {name_file}')
     else:

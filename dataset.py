@@ -11,6 +11,11 @@ import torch
 
 
 class CbisDataset(Dataset):
+    """
+    Data loader for cbis-ddsm dataset
+    vit - transformers, if vit, then we concatenate MLO and CC along y axis
+    so that we send patches of the MLO and CC to the transformer
+    """
     def __init__(self, fold=0, root='/home/ibm_prod/projects/datasets/cbis_ddsm/Mass_png', mode='Train',
                  transform=None, vit=False):
 
@@ -20,8 +25,8 @@ class CbisDataset(Dataset):
         elif mode == 'Test':
             self.df = pd.read_csv('./folds/cbis/test_data_cbis.csv')
 
-        self.root = os.path.join(root, f'{mode}_FULL')
-        self.root_mask = os.path.join(root, f'{mode}_MASK')
+        self.root = os.path.join(root, mode, f'{mode}_FULL')
+        self.root_mask = os.path.join(root, mode, f'{mode}_MASK')
         if transform is None:
             self.transform = A.Compose([
                 A.Resize(512, 512),
@@ -74,6 +79,10 @@ class CbisDataset(Dataset):
 
 
 class InBreast(Dataset):
+    """
+    vit - transformers, if vit, then we concatenate MLO and CC along y axis
+    so that we send patches of the MLO and CC to the transformer
+    """
     def __init__(self, fold=0, root='/home/ibm_prod/projects/datasets/INBreast/', mode='train', transform=None, vit=False):
 
         self.df = pd.read_csv(f'/home/ibm_prod/projects/diplom/folds/inbreast/{mode}{fold}.csv')
