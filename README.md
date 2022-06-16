@@ -3,6 +3,7 @@
 # Goal
 Solve segmentation task and improve consistency between predicted masks of MLO and CC views of breast by **modifying the loss** function and by using **transformer blocks as an encoder**. </br>
 The baseline models are our segmentation models that had been trained without any transformers and without any auxiliary loss. 
+MLO and CC provide complementary information about the breast. MLO and CC have comman x-axis.
 # Datasets
 Popular InBreast [1] and CBIS-DDSM [2] datasets
 # Models
