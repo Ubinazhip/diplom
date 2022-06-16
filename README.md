@@ -23,4 +23,4 @@ and diagnosis research,” Scientific data, vol. 4, no. 1, pp. 1–9, 2017. </br
 [3] A. Hatamizadeh, Y. Tang, V. Nath, D. Yang, A. Myronenko, B. Landman, H. R. Roth, and D. Xu, “Unetr: Transformers for 3d medical image
 segmentation,” in Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision, 2022, pp. 574–584. </br>
 # Author 
-Aslan Ubingazhov - HSE Moscow - aubingazhibov@edu.hse.ru
+Aslan Ubingazhibov - HSE Moscow - aubingazhibov@edu.hse.ru
