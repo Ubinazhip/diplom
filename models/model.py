@@ -1,11 +1,4 @@
-import copy
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import math
-from monai.networks.nets import UNet,UNETR
-from models import ternausnets
-from models.selim_zoo.unet import Resnet
 import segmentation_models_pytorch as smp
 from monai.networks.nets import UNETR
 

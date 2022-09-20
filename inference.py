@@ -1,13 +1,9 @@
 from tqdm import tqdm
 import torch
 import argparse
-import dataset
-import model
+from loaders import data_loader
+from models import model
 from utils import losses
-import monai
-from utils import losses
-import statistics
-from model import binarize_mask
 
 
 def parser():
@@ -61,9 +57,9 @@ if __name__ == '__main__':
 
     model.load_state_dict(checkpoint)
 
-    dataloaders = dataset.data_loader(fold=args.fold, batch_size=args.batch_size,
-                                      train_transform=args.transform_val,
-                                      val_transform=args.transform_val)
+    dataloaders = data_loader(fold=args.fold, batch_size=args.batch_size,
+                              train_transform=args.transform_val,
+                              val_transform=args.transform_val)
 
     criterion = losses.ComboLoss({'dice': 1, 'bce': 0})
     valid_metric = losses.dice_metric

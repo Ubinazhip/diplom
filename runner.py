@@ -1,17 +1,11 @@
-from tqdm import tqdm
 import torch
 import os
-import torch.nn as nn
-from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
-import copy
 import argparse
-import albumentations as A
 import train
-import dataset
-import model
+from loaders import data_loader
+from models import model
 from utils.early_stop import EarlyStopping
 from utils import losses
-from monai.losses import DiceLoss
 import inference
 import pandas as pd
 
@@ -64,9 +58,9 @@ if __name__ == '__main__':
     model = model.cuda()
     model = torch.nn.DataParallel(model)
 
-    dataloaders = dataset.data_loader(fold=args.fold, batch_size=args.batch_size,
-                                      train_transform=args.transform, val_transform=args.transform_val,
-                                      dataset=args.dataset, vit=args.vit)
+    dataloaders = data_loader(fold=args.fold, batch_size=args.batch_size,
+                              train_transform=args.transform, val_transform=args.transform_val,
+                              dataset=args.dataset, vit=args.vit)
 
     criterion = losses.ComboLoss(dict(dice=args.dice, bce=args.bce, focal=args.focal))
     criterions = [criterion]
@@ -97,9 +91,9 @@ if __name__ == '__main__':
     model = train.train_model(model=model, dataloaders=dataloaders, criterions=criterions, optimizer=optimizer,
                               num_epochs=args.epochs, hparams=hparams, loss_type=args.loss_type, vit=args.vit)
 
-    dataloaders = dataset.data_loader(fold=args.fold, batch_size=1,
-                                      train_transform=args.transform_val, val_transform=args.transform_val,
-                                      dataset=args.dataset, vit=args.vit)
+    dataloaders = data_loader(fold=args.fold, batch_size=1,
+                              train_transform=args.transform_val, val_transform=args.transform_val,
+                              dataset=args.dataset, vit=args.vit)
 
     model.eval()
     test_metric, test_loss = inference.inference(model, dataloaders['test'], criterion=criterion,
